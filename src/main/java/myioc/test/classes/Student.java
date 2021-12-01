@@ -1,13 +1,15 @@
 package myioc.test.classes;
 
+import myioc.annotation.Autowired;
 import myioc.annotation.Component;
 
 @Component
 public class Student {
-    public Student(){
-        System.out.println("A student is created");
-    }
+    @Autowired(name="小明")
+    private String name;
+
+    public Student(){System.out.println("A student is created"); }
     public void studentSpeak(){
-        System.out.println("Student is speaking");
+        System.out.println("My name is" + name);
     }
 }

@@ -65,8 +65,15 @@ public class ApplicationContext {
             for(Field f: fields){
                 Autowired aw = f.getAnnotation(Autowired.class);// 自动装配成员属性
                 if(aw != null){
+                    Object o = aw.name();
                     f.setAccessible(true);// 暴力反射，解除私有限定
-                    f.set(obj, map.get(f.getType()));// 从已有的对象中找到 对象o的field对象标识的字段设置值
+                    if(map.get(f.getType()) == null)// 如果属性未注入，则注入设定的value值
+                    {
+                        f.set(obj, o);
+                    }
+                    else {// 如果属性已注入
+                        f.set(obj, map.get(f.getType()));// 从已有的对象中找到 对象o的field对象标识的字段设置值
+                    }
                 }
             }
             map.put(c,obj);
