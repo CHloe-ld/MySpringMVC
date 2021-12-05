@@ -1,11 +1,11 @@
-package myioc;
+package springIoc.utils;
 
 /*
 * ioc容器
 * */
 
-import myioc.annotation.*;
-import myioc.utils.ClassUtil;
+import springIoc.annotation.*;
+import springIoc.utils.ClassUtil;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -20,6 +20,7 @@ import java.util.Set;
 
 public class ApplicationContext {
     private Map<Class<?>, Object> map = new HashMap<>();// 类到实体的映射
+
 
     /*
     * 传入配置文件进行注入
@@ -67,13 +68,17 @@ public class ApplicationContext {
                 if(aw != null){
                     Object o = aw.name();
                     f.setAccessible(true);// 暴力反射，解除私有限定
-                    if(map.get(f.getType()) == null)// 如果属性未注入，则注入设定的value值
-                    {
+                    if(o != null){// 设置对象o的field对象标识的字段值为Autowired中的设定值
                         f.set(obj, o);
                     }
-                    else {// 如果属性已注入
-                        f.set(obj, map.get(f.getType()));// 从已有的对象中找到 对象o的field对象标识的字段设置值
-                    }
+
+                    //if(map.get(f.getType()) == null)// 如果属性未注入，则注入设定的value值
+                    //{
+                    //    f.set(obj, o);
+                    //}
+                    //else {// 如果属性已注入
+                    //    f.set(obj, map.get(f.getType()));// 从已有的对象中找到 对象o的field对象标识的字段设置值
+                    // }
                 }
             }
             map.put(c,obj);

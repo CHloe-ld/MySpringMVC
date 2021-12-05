@@ -1,4 +1,4 @@
-package myioc.annotation;
+package springIoc.annotation;
 
 
 import java.lang.annotation.ElementType;

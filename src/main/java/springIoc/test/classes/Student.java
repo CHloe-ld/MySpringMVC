@@ -1,7 +1,7 @@
-package myioc.test.classes;
+package springIoc.test.classes;
 
-import myioc.annotation.Autowired;
-import myioc.annotation.Component;
+import springIoc.annotation.Autowired;
+import springIoc.annotation.Component;
 
 @Component
 public class Student {

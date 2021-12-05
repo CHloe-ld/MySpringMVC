@@ -1,4 +1,4 @@
-package myioc.test.classes;
+package springIoc.test.classes;
 
 public class Teacher {
     public Teacher(){
