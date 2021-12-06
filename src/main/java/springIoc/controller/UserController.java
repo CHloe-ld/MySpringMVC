@@ -5,9 +5,9 @@ import springIoc.annotation.RequestMapping;
 import springIoc.view.View;
 
 @Controller
-@RequestMapping("/mySpringMvc")
+@RequestMapping("/myMvc/user")
 public class UserController {
-    @RequestMapping("/")
+    @RequestMapping("/home")
     public View name(){
         System.out.println(55555);
         View view = new View("/WEB-INF/file.jsp");

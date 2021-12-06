@@ -1,5 +1,9 @@
 package springIoc.servlet;
 
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import springIoc.Configure;
 import springIoc.controller.UserController;
 import springIoc.utils.MVCApplicationContext;
@@ -14,10 +18,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class DispatcherServlet extends HttpServlet {
     MVCApplicationContext mvcApplicationContext;
@@ -51,40 +52,76 @@ public class DispatcherServlet extends HttpServlet {
         /*
         * 将用户访问的uri与已有的uri进行匹配，同时对用户传递的参数进行读取
         * */
-        ArrayList<String> attribute = new ArrayList<>();  // 用户访问传递的参数
+        ServletFileUpload fileUpload = new ServletFileUpload(new DiskFileItemFactory());
+        ArrayList<Object> attribute = new ArrayList<>();  // 用户访问传递的参数
         Method method = null;
         boolean matched = false;
-        // 遍历methodMap
-        for (String mapUri : mvcApplicationContext.getMethodMap().keySet()) {
-            if (mapUri == null)
-                break;
-            Method mapMethod = mvcApplicationContext.getMethodMap().get(mapUri);
-            String[] splitUsrUri = usrUri.split("/");
-            String[] splitMapUri = mapUri.split("/");
-            matched = true;
-            // 长度不同直接跳过
-            if (splitMapUri.length != splitUsrUri.length) {
-                matched = false;
-                continue;
-            }
-            for (int i = 0; i < splitUsrUri.length; i++) {
-//                System.out.println("splitMapUri[i]:" + splitMapUri[i] + "  splitUsrUri[i]：" + splitUsrUri[i]);
-                if (splitMapUri[i].startsWith("{") && splitMapUri[i].endsWith("}")) {// 传参位
-                    attribute.add(splitUsrUri[i]);
-
-                } else {
-                    if (!Objects.equals(splitUsrUri[i], splitMapUri[i])) {
+        // 请求为上传文件的请求
+        if(ServletFileUpload.isMultipartContent(request)){
+            try {
+                List<FileItem> list = fileUpload.parseRequest(request);
+                String savePath = this.getServletContext().getRealPath("/") + "WEB-INF\\upload";
+                attribute.add(list);
+                attribute.add(savePath);
+                // 从methodMap中找到对应方法
+                for(String mapUri: mvcApplicationContext.getMethodMap().keySet()){
+                    matched = true;
+                    Method mapMethod = mvcApplicationContext.getMethodMap().get(mapUri);
+                    String[] splitUsrUri = usrUri.split("/");
+                    String[] splitMapUri = mapUri.split("/");
+                    if(splitMapUri.length != splitUsrUri.length){
                         matched = false;
+                        continue;
+                    }
+                    for(int i=0; i<splitUsrUri.length; i++){
+                        if(!Objects.equals(splitUsrUri[i], splitMapUri[i])){
+                            matched = false;
+                            break;
+                        }
+                    }
+                    if(matched){
+                        method = mapMethod;
                         break;
                     }
                 }
+            } catch (FileUploadException e) {
+                e.printStackTrace();
             }
-            if (matched) {
-                method = mapMethod;
-                break;
-            }
-            attribute = new ArrayList<>();
         }
+        // 普通请求
+        else{
+            // 遍历methodMap进行匹配，获得对应的method
+            for (String mapUri : mvcApplicationContext.getMethodMap().keySet()) {
+                if (mapUri == null)
+                    break;
+                Method mapMethod = mvcApplicationContext.getMethodMap().get(mapUri);
+                String[] splitUsrUri = usrUri.split("/");
+                String[] splitMapUri = mapUri.split("/");
+                matched = true;
+                // 长度不同直接跳过
+                if (splitMapUri.length != splitUsrUri.length) {
+                    matched = false;
+                    continue;
+                }
+                for (int i = 0; i < splitUsrUri.length; i++) {
+//                System.out.println("splitMapUri[i]:" + splitMapUri[i] + "  splitUsrUri[i]：" + splitUsrUri[i]);
+                    if (splitMapUri[i].startsWith("{") && splitMapUri[i].endsWith("}")) {// 传参位
+                        attribute.add(splitUsrUri[i]);
+                    } else {
+                        if (!Objects.equals(splitUsrUri[i], splitMapUri[i])) {
+                            matched = false;
+                            break;
+                        }
+                    }
+                }
+                if (matched) {
+                    method = mapMethod;
+                    break;
+                }
+                attribute = new ArrayList<>();
+            }
+        }
+
         if(matched){
             System.out.println("匹配成功，应调用的方法为" + method.getName());
             System.out.println("用户传递的参数为" + attribute);
@@ -99,11 +136,15 @@ public class DispatcherServlet extends HttpServlet {
         response.setContentType("text/html");
         PrintWriter out = response.getWriter();
         Object obj = mvcApplicationContext.getBean(method);
-        String[] attr = attribute.toArray(new String[0]);
+        Object[] attr = attribute.toArray(new Object[0]);
         try {
             assert method != null;
             View res = (View) method.invoke(obj, attr);
             String path = res.getPath();
+            Map<String, Object> att = res.getAttr();
+            for(Map.Entry<String, Object> entry: att.entrySet()){
+                request.setAttribute(entry.getKey(), att.get(entry.getKey()));
+            }
             // 如果返回值不为空
             if(path.endsWith(".jsp")){// 路径为jsp文件，则请求转发（渲染jsp文件）
                 System.out.println("请求转发");
